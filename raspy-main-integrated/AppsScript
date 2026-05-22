@@ -1,0 +1,112 @@
+function doPost(e){
+
+  try{
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Attendance");
+    var data = JSON.parse(e.postData.contents);
+
+    // Mapping mutu berdasarkan kode
+    var mutuMap = {
+      "0":0,
+      "1":1,
+      "2":1.5,
+      "3":2.5,
+      "4":2,
+      "5":3,
+      "6":5,
+      "7":6,
+      "8":4,
+      "9":"",
+      "A":3,
+      "B":2,
+      "C":""
+    };
+
+    var row = Math.max(sheet.getLastRow()+1,3);
+    var now = new Date();
+
+    // =========================
+    // DATA UTAMA
+    // =========================
+    sheet.getRange(row,1).setValue(now);
+    sheet.getRange(row,1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
+
+    sheet.getRange(row,2).setValue(data.id || "");
+    sheet.getRange(row,3).setValue(data.name || "");
+
+    // =========================
+    // SHIFT + TOTAL MUTU
+    // =========================
+    var totalMutu = 0;
+
+    function isiShift(n,kode){
+
+      if(!kode) return;
+
+      kode = String(kode).toUpperCase();
+      var mutu = mutuMap[kode] ?? "";
+
+      var ketCol = 3 + (n*2 -1);
+      var mutuCol = 3 + (n*2);
+
+      sheet.getRange(row,ketCol).setValue(kode);
+      sheet.getRange(row,mutuCol).setValue(mutu);
+
+      if(typeof mutu === "number"){
+        totalMutu += mutu;
+      }
+    }
+
+    isiShift(1,data.shift_A);
+    isiShift(2,data.shift_B);
+    isiShift(3,data.shift_C);
+    isiShift(4,data.shift_D);
+    isiShift(5,data.shift_E);
+
+    // =========================
+    // DOMISILI (COL N = 14)
+    // =========================
+    sheet.getRange(row,14).setValue(data.domisili || "-");
+
+    // =========================
+    // STATUS (COL O = 15)
+    // =========================
+    var status = (data.name && data.id) ? "Registered" : "Unregistered";
+    sheet.getRange(row,15).setValue(status);
+
+    // =========================
+    // AKSES (COL P = 16)
+    // =========================
+    var id = data.id;
+    var aksesCount = 1;
+
+    if(id){
+      var idColumn = sheet.getRange("B3:B" + sheet.getLastRow()).getValues();
+
+      aksesCount = idColumn.filter(function(r){
+        return r[0] == id;
+      }).length;
+    }
+
+    sheet.getRange(row,16).setValue(aksesCount);
+
+    // =========================
+    // TOTAL SHIFT (COL Q = 17)
+    // =========================
+    sheet.getRange(row,17).setValue(totalMutu);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status:"success",
+      total_shift: totalMutu
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  }catch(err){
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status:"error",
+      message:err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  }
+
+}
