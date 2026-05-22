@@ -1,0 +1,27 @@
+# Flask API Server
+Flask==2.3.3
+Flask-CORS==4.0.0
+
+# Numerical & Image Processing
+numpy==1.24.3
+opencv-python==4.8.0.76
+Pillow==10.0.0
+
+# Face Detection & Recognition
+facenet-pytorch==2.5.2
+torch==2.0.1
+torchvision==0.15.2
+
+# Database
+sqlite3  # Built-in, no need to pip install
+
+# Utilities
+pyyaml==6.0
+pyserial==3.5
+requests==2.31.0
+
+# Production
+gunicorn==21.2.0  # For production server
+
+# Optional: for better performance
+scipy==1.11.0

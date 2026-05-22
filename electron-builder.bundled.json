@@ -1,0 +1,43 @@
+{
+  "appId": "com.biometric.desktop.bundled",
+  "productName": "Biometric Desktop Bundled",
+  "directories": {
+    "output": "dist-bundled",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist/**",
+    "dist-electron/**",
+    "node_modules/**",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "embedding_extractor",
+      "to": "app-resources/embedding_extractor",
+      "filter": [
+        "**/*"
+      ]
+    },
+    {
+      "from": "bundle/python-runtime",
+      "to": "app-resources/python-runtime",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
+  "win": {
+    "target": [
+      "nsis"
+    ],
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "signAndEditExecutable": false,
+    "verifyUpdateCodeSignature": false
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

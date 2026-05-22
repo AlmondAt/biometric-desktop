@@ -1,0 +1,75 @@
+{
+  "name": "biometric-desktop",
+  "version": "1.0.0",
+  "description": "Desktop biometric enrollment and monitoring app",
+  "author": "Muhammad Al Farizi dan Copilot",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "serve": "electron .",
+    "dist:win": "electron-builder --win nsis",
+    "build:python-runtime": "powershell -ExecutionPolicy Bypass -File ./scripts/build-python-runtime.ps1",
+    "build:bundled": "tsc && vite build && npm run build:python-runtime && electron-builder --config electron-builder.bundled.json"
+  },
+  "build": {
+    "appId": "com.biometric.desktop",
+    "productName": "Biometric Desktop",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "node_modules/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "embedding_extractor",
+        "to": "app-resources/embedding_extractor",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "lucide-react": "^0.360.0",
+    "mysql2": "^3.9.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.3",
+    "react-webcam": "^7.2.0",
+    "sql.js": "^1.14.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.4.3",
+    "vite": "^5.2.0",
+    "vite-plugin-electron": "^0.28.4",
+    "vite-plugin-electron-renderer": "^0.14.5"
+  }
+}

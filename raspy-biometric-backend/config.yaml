@@ -1,0 +1,42 @@
+# Raspberry Pi Biometric Backend Configuration
+
+# Database Configuration
+database:
+  path: '../biometrics.db'
+  
+# API Server Configuration
+api:
+  host: '0.0.0.0'  # Listen on all interfaces
+  port: 5000
+  debug: false
+  
+# Face Recognition Configuration
+recognition:
+  similarity_threshold: 0.5  # 0-1, semakin tinggi semakin strict
+  embedding_model: 'vggface2'  # Pre-trained model
+  embedding_size: 512  # FaceNet embedding dimension
+  
+# MTCNN Face Detection Configuration
+mtcnn:
+  min_face_size: 20
+  thresholds: [0.6, 0.7, 0.7]
+  factor: 0.709
+  device: 'cpu'  # Use 'cuda' if GPU available
+  
+# Processing Configuration
+processing:
+  target_face_size: [160, 160]  # FaceNet input size
+  use_gpu: false  # Set to true if Raspy punya NVIDIA GPU
+  verbose: true  # Print debugging info
+  
+# Logging Configuration
+logging:
+  level: 'INFO'  # DEBUG, INFO, WARNING, ERROR
+  file: 'biometric.log'
+  max_log_size: 10485760  # 10MB
+  
+# Recognition Log Configuration
+recognition_log:
+  enabled: true
+  store_failed: true  # Log recognition failures
+  max_records: 10000
