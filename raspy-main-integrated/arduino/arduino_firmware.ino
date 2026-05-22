@@ -1,308 +1,236 @@
 /*
-  Lab Robotika 2025 - Arduino Nano Firmware
-  Integrated Attendance System
-  
-  Hardware:
-  - Arduino Nano (ATmega328P)
-  - 16x4 I2C LCD Display (0x27)
-  - 1602 LCD with PCF8574 I2C backpack
-  - Touch Sensor (Pin A0)
-  - 4x4 Keypad (Matrix)
-  - Emergency Button (Pin D2)
-  - Relay Module (Pin D13)
-  - Serial communication with Raspberry Pi @ 115200 baud
-  
-  Protocol: JSON via Serial UART
-  
-  Expected messages from RPi:
-  {
-    "type": "display",
-    "lines": ["Line 0", "Line 1", "Line 2", "Line 3"]
-  }
-  {
-    "type": "actuator",
-    "device": "relay",
-    "action": "open|close",
-    "duration": 5
-  }
-  
-  Messages sent to RPi:
-  {"type": "system", "event": "boot"}
-  {"type": "input", "source": "touch", "state": "on"}
-  {"type": "input", "source": "keypad", "key": "A"}
-  {"type": "event", "name": "emergency", "state": "pressed"}
-*/
+ * Arduino Nano Lab Attendance System
+ * MERGED STABLE VERSION - RAM OPTIMIZED
+ */
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <Keypad_I2C.h>
 #include <Keypad.h>
 #include <ArduinoJson.h>
 
-// ========== PIN DEFINITIONS ==========
-#define TOUCH_PIN      A0
-#define EMERGENCY_PIN   2
-#define RELAY_PIN      13
-#define BACKLIGHT_PIN  11  // PWM for backlight brightness
+#define LCD_ADDR 0x27
+#define KEYPAD_ADDR 0x20
+#define TOUCH_PIN 7
+#define RELAY_PIN 3
+#define EMERGENCY_PIN 4
 
-// ========== LCD Configuration ==========
-// 16x4 LCD with I2C address 0x27
-LiquidCrystal_I2C lcd(0x27, 20, 4);
+LiquidCrystal_I2C lcd(LCD_ADDR, 20, 4);
 
-// ========== KEYPAD Configuration ==========
 const byte ROWS = 4;
 const byte COLS = 4;
 
-char hexaKeys[ROWS][COLS] = {
-  {'1', '2', '3', 'A'},
-  {'4', '5', '6', 'B'},
-  {'7', '8', '9', 'C'},
-  {'*', '0', '#', 'D'}
+char keys[ROWS][COLS] = {
+  {'D','C','B','A'},
+  {'#','9','6','3'},
+  {'0','8','5','2'},
+  {'*','7','4','1'}
 };
 
-// Adjust pins based on your wiring
-byte rowPins[ROWS] = {12, 11, 10, 9};        // R1, R2, R3, R4
-byte colPins[COLS] = {8, 7, 6, 5};           // C1, C2, C3, C4
+byte rowPins[ROWS] = {4,5,6,7};
+byte colPins[COLS] = {0,1,2,3};
 
-Keypad keypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+Keypad_I2C keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS, KEYPAD_ADDR);
 
-// ========== STATE VARIABLES ==========
+StaticJsonDocument<512> jsonDoc;
+
 unsigned long lastTouchTime = 0;
 unsigned long lastEmergencyTime = 0;
-unsigned long relayStartTime = 0;
+unsigned long relayStart = 0;
 unsigned long relayDuration = 0;
+
 bool relayActive = false;
-bool touchActive = false;
+bool lastTouchState = LOW;
 
-// JSON buffer
-StaticJsonDocument<256> jsonDoc;
+const unsigned long DEBOUNCE = 200;
 
-void setup() {
-  Serial.begin(115200);
-  delay(500);  // Wait for serial to stabilize
-  
-  // Initialize pins
-  pinMode(TOUCH_PIN, INPUT);
-  pinMode(EMERGENCY_PIN, INPUT_PULLUP);
-  pinMode(RELAY_PIN, OUTPUT);
-  pinMode(BACKLIGHT_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
-  
-  // Initialize LCD
-  Wire.begin();
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("Initializing...");
-  lcd.setCursor(0, 1);
-  lcd.print("Lab Robotika 2025");
-  
-  delay(1000);
-  
-  // Send boot signal to RPi
-  sendBootSignal();
-  
-  // Clear LCD
+// ================= LCD CENTER =================
+void lcdPrintCentered(const String& s, int row) {
+  int len = min((int)s.length(), 20);
+  int pad = (20 - len) / 2;
+  lcd.setCursor(0, row);
+  for (int i = 0; i < pad; i++) lcd.print(' ');
+  lcd.print(s.substring(0, len));
+  for (int i = pad + len; i < 20; i++) lcd.print(' ');
+}
+
+void lcdShow(const char* l1="", const char* l2="", const char* l3="", const char* l4="") {
   lcd.clear();
-  displayDefault();
+  lcdPrintCentered(String(l1), 0);
+  lcdPrintCentered(String(l2), 1);
+  lcdPrintCentered(String(l3), 2);
+  lcdPrintCentered(String(l4), 3);
 }
 
-void loop() {
-  // Handle serial commands from RPi
-  if (Serial.available()) {
-    handleSerialInput();
-  }
-  
-  // Handle keypad input
-  handleKeypadInput();
-  
-  // Handle touch sensor
-  handleTouchSensor();
-  
-  // Handle emergency button
-  handleEmergencyButton();
-  
-  // Handle relay timeout
-  handleRelayTimeout();
-  
-  delay(10);
-}
-
-// ========== SERIAL COMMUNICATION ==========
-
-void sendBootSignal() {
-  DynamicJsonDocument doc(128);
-  doc["type"] = "system";
-  doc["event"] = "boot";
-  serializeJson(doc, Serial);
+// ================= SEND JSON =================
+void sendJson(const char* type,
+              const char* k1=NULL, const char* v1=NULL,
+              const char* k2=NULL, const char* v2=NULL) {
+  jsonDoc.clear();
+  jsonDoc["type"] = type;
+  if (k1) jsonDoc[k1] = v1;
+  if (k2) jsonDoc[k2] = v2;
+  serializeJson(jsonDoc, Serial);
   Serial.println();
 }
 
-void handleSerialInput() {
-  String input = Serial.readStringUntil('\n');
-  input.trim();
-  
-  if (input.length() == 0) return;
-  
-  // Parse JSON from RPi
-  DeserializationError error = deserializeJson(jsonDoc, input);
-  
-  if (error) {
-    Serial.print("{\"error\": \"JSON parse failed: ");
-    Serial.print(error.c_str());
-    Serial.println("\"}");
+// ================= SEND RELAY ACK =================
+void sendRelayAck(const char* action, int duration = 0) {
+  jsonDoc.clear();
+  jsonDoc["type"] = "ack";
+  jsonDoc["device"] = "relay";
+  jsonDoc["action"] = action;
+  if (duration > 0) jsonDoc["duration"] = duration;
+  serializeJson(jsonDoc, Serial);
+  Serial.println();
+}
+
+// ================= OPEN RELAY =================
+void openRelay(int durationSec) {
+  Serial.println(F("[DEBUG] Relay OPEN"));       // ← F() macro
+  digitalWrite(RELAY_PIN, HIGH);
+  relayDuration = ((unsigned long)durationSec) * 1000UL;
+  relayStart = millis();
+  relayActive = true;
+  Serial.print(F("[DEBUG] relayDuration ms: ")); // ← F() macro
+  Serial.println(relayDuration);
+  sendRelayAck("open", durationSec);
+}
+
+// ================= CLOSE RELAY =================
+void closeRelay() {
+  Serial.println(F("[DEBUG] Relay CLOSE"));      // ← F() macro
+  digitalWrite(RELAY_PIN, LOW);
+  relayActive = false;
+  relayStart = 0;
+  relayDuration = 0;
+  sendRelayAck("close");
+}
+
+// ================= PROCESS COMMAND =================
+void processCommand(String input) {
+
+  Serial.print(F("[DEBUG] RX: "));               // ← F() macro
+  Serial.println(input);
+
+  jsonDoc.clear();
+  DeserializationError err = deserializeJson(jsonDoc, input);
+
+  if (err) {
+    Serial.print(F("[DEBUG] JSON ERR: "));        // ← F() macro
+    Serial.println(err.c_str());
     return;
   }
-  
-  String msgType = jsonDoc["type"];
-  
-  if (msgType == "display") {
-    handleDisplayCommand();
-  }
-  else if (msgType == "actuator") {
-    handleActuatorCommand();
-  }
-  else if (msgType == "ping") {
-    sendPongResponse();
-  }
-}
 
-void sendPongResponse() {
-  DynamicJsonDocument doc(64);
-  doc["type"] = "pong";
-  doc["time"] = millis();
-  serializeJson(doc, Serial);
-  Serial.println();
-}
+  const char* type = jsonDoc["type"];
+  if (!type) return;
 
-void handleDisplayCommand() {
-  // Clear LCD
-  lcd.clear();
-  
-  // Display 4 lines
-  for (int i = 0; i < 4; i++) {
-    if (jsonDoc["lines"][i] != nullptr) {
-      String line = jsonDoc["lines"][i].as<String>();
-      lcd.setCursor(0, i);
-      
-      // Truncate to 20 chars (adjust for your LCD width)
-      if (line.length() > 20) {
-        line = line.substring(0, 20);
+  // ===== DISPLAY =====
+  if (strcmp(type, "display") == 0) {
+    JsonArray lines = jsonDoc["lines"];
+    lcdShow(
+      lines[0] | "",
+      lines[1] | "",
+      lines[2] | "",
+      lines[3] | ""
+    );
+  }
+
+  // ===== ACTUATOR =====
+  else if (strcmp(type, "actuator") == 0) {
+    const char* device = jsonDoc["device"];
+    const char* action = jsonDoc["action"];
+
+    if (!device || !action) return;
+
+    if (strcmp(device, "relay") == 0) {
+      if (strcmp(action, "open") == 0) {
+        int duration = jsonDoc["duration"] | 5;
+        Serial.print(F("[DEBUG] Duration: "));   // ← F() macro
+        Serial.println(duration);
+        openRelay(duration);
       }
-      
-      lcd.print(line);
+      else if (strcmp(action, "close") == 0) {
+        closeRelay();
+      }
     }
   }
 }
 
-void handleActuatorCommand() {
-  String device = jsonDoc["device"];
-  String action = jsonDoc["action"];
-  
-  if (device == "relay") {
-    if (action == "open") {
-      openRelay();
-      relayDuration = jsonDoc["duration"] | 5;  // Default 5 seconds
-      relayStartTime = millis();
-      relayActive = true;
-    }
-    else if (action == "close") {
-      closeRelay();
-      relayActive = false;
-    }
-  }
-}
+// ================= SETUP =================
+void setup() {
 
-// ========== KEYPAD HANDLER ==========
+  Serial.begin(115200);
+  Serial.setTimeout(50); // ← tetap 50, bukan 500
 
-void handleKeypadInput() {
-  char key = keypad.getKey();
-  
-  if (key) {
-    // Debounce: ignore rapid repeats
-    static unsigned long lastKeyTime = 0;
-    if (millis() - lastKeyTime < 50) return;
-    lastKeyTime = millis();
-    
-    // Send to RPi
-    DynamicJsonDocument doc(128);
-    doc["type"] = "input";
-    doc["source"] = "keypad";
-    char keyStr[2] = {key, '\0'};
-    doc["key"] = keyStr;
-    serializeJson(doc, Serial);
-    Serial.println();
-  }
-}
-
-// ========== TOUCH SENSOR HANDLER ==========
-
-void handleTouchSensor() {
-  int touchValue = analogRead(TOUCH_PIN);
-  bool touched = (touchValue < 512);  // Adjust threshold based on calibration
-  
-  // Debounce
-  if (touched && !touchActive) {
-    if (millis() - lastTouchTime > 500) {  // 500ms debounce
-      touchActive = true;
-      lastTouchTime = millis();
-      
-      // Send to RPi
-      DynamicJsonDocument doc(128);
-      doc["type"] = "input";
-      doc["source"] = "touch";
-      doc["state"] = "on";
-      serializeJson(doc, Serial);
-      Serial.println();
-    }
-  }
-  else if (!touched && touchActive) {
-    touchActive = false;
-  }
-}
-
-// ========== EMERGENCY BUTTON HANDLER ==========
-
-void handleEmergencyButton() {
-  // Button active LOW (pulled up)
-  int btnState = digitalRead(EMERGENCY_PIN);
-  
-  if (btnState == LOW) {
-    if (millis() - lastEmergencyTime > 500) {  // 500ms debounce
-      lastEmergencyTime = millis();
-      
-      // Send to RPi
-      DynamicJsonDocument doc(128);
-      doc["type"] = "event";
-      doc["name"] = "emergency";
-      doc["state"] = "pressed";
-      serializeJson(doc, Serial);
-      Serial.println();
-    }
-  }
-}
-
-// ========== RELAY CONTROL ==========
-
-void openRelay() {
-  digitalWrite(RELAY_PIN, HIGH);
-}
-
-void closeRelay() {
+  pinMode(TOUCH_PIN, INPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(EMERGENCY_PIN, INPUT_PULLUP);
   digitalWrite(RELAY_PIN, LOW);
+
+  Wire.begin();
+  delay(100);
+
+  lcd.init();
+  lcd.backlight();
+
+  lcdShow("Arduino Ready", "Waiting Pi...", "", "");
+
+  keypad.begin();
+  delay(500);
+
+  sendJson("system", "event", "boot");
 }
 
-void handleRelayTimeout() {
-  if (relayActive && (millis() - relayStartTime) >= (relayDuration * 1000UL)) {
-    closeRelay();
-    relayActive = false;
+// ================= LOOP =================
+void loop() {
+
+  unsigned long now = millis();
+
+  // ===== SERIAL RECEIVE =====
+  if (Serial.available()) {
+    String incoming = Serial.readStringUntil('\n');
+    incoming.trim();
+    if (incoming.length() > 0) {
+      processCommand(incoming);
+    }
+  }
+
+  // ===== TOUCH =====
+  bool touch = digitalRead(TOUCH_PIN);
+  if (touch == HIGH && lastTouchState == LOW &&
+      (now - lastTouchTime > DEBOUNCE)) {
+    sendJson("input", "source", "touch", "state", "on");
+    lastTouchTime = now;
+  }
+  lastTouchState = touch;
+
+  // ===== EMERGENCY =====
+  if (digitalRead(EMERGENCY_PIN) == LOW &&
+      (now - lastEmergencyTime > 800)) {
+    sendJson("event", "name", "emergency", "state", "pressed");
+    lastEmergencyTime = now;
+  }
+
+  // ===== RELAY TIMER =====
+  if (relayActive) {
+    unsigned long elapsed = millis() - relayStart;
+    if (elapsed >= relayDuration) {
+      Serial.println(F("[DEBUG] Relay AUTO CLOSE")); // ← F() macro
+      digitalWrite(RELAY_PIN, LOW);
+      relayActive = false;
+      relayStart = 0;
+      relayDuration = 0;
+      sendRelayAck("timeout-close");
+    }
+  }
+
+  // ===== KEYPAD =====
+  char key = keypad.getKey();
+  if (key) {
+    char k[2] = {key, '\0'};
+    sendJson("input", "source", "keypad", "key", k);
   }
 }
 
-// ========== DISPLAY HELPERS ==========
-
-void displayDefault() {
-  lcd.setCursor(0, 0);
-  lcd.print("Lab Robotika");
-  lcd.setCursor(0, 1);
-  lcd.print("Ready");
-}
+code arduino di folder dipa
