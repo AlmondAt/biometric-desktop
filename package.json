@@ -27,7 +27,7 @@
     ],
     "extraResources": [
       {
-       "from": "model/acquisition/embedding_extractor",
+        "from": "embedding_extractor",
         "to": "app-resources/embedding_extractor",
         "filter": ["**/*"]
       }
