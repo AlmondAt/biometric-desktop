@@ -313,6 +313,7 @@ SSH Password: raspberry
 **Main command to start:**
 
 ```bash
+source /home/pi/Skripsi/.venv39/bin/activate
 cd ~/Skripsi/lab
 python model/raspy-main-integrated/main_integrated.py
 ```
@@ -327,56 +328,130 @@ python model/raspy-main-integrated/main_integrated.py
 ### System Configuration (`config.yaml`)
 
 ```yaml
+# Serial Communication
 serial:
-  port: /dev/ttyUSB0          # Arduino serial port
-  baudrate: 9600
+  arduino_port: "/dev/ttyUSB0"  # Arduino Nano serial port
+  arduino_baudrate: 115200
+  fingerprint_port: "/dev/ttyUSB1"  # AS608/R307 sensor
+  fingerprint_baudrate: 57600
+  timeout: 1.0
 
+# Camera Configuration
 camera:
+  devices: ['/dev/video0', 0]  # OpenCV devices to try
   width: 640
   height: 480
-  framerate: 30
+  use_rpicam: true  # use rpicam-jpeg CLI fallback when OpenCV fails
+  rpicam_timeout: 1  # seconds for rpicam-jpeg to capture (each capture ~10s)
 
-fingerprint:
-  timeout: 15                 # seconds
-  threshold: 50               # match threshold
+# Biometric Settings
+biometric:
+  fingerprint_timeout: 15  # seconds (increased from 12 to handle sensor initialization delay)
+  face_timeout: 20  # seconds (increased from 8 to accommodate rpicam delays)
+  face_threshold: 0.7  # similarity threshold (0.0 - 1.0)
+  stable_frames: 1  # number of consistent frames for face verification
 
-face:
-  timeout: 45                 # seconds
-  threshold: 0.8              # cosine similarity
+# Touch Sensor
+touch:
+  debounce_ms: 200
 
+# Keypad Input
+keypad:
+  input_timeout: 20  # seconds per field
+
+# Relay/Door Control
+relay:
+  open_duration: 10  # seconds
+  
+# Database Paths
+database:
+  sqlite_path: "biometrics.db"
+  embeddings_path: "database/embeddings.pkl"
+  
+# Logging
+logging:
+  log_folder: "logs"
+  events_log: "logs/events.log"
+  access_log: "logs/access.log"
+  pending_csv: "logs/absensi_pending.csv"
+  unknown_faces: "logs/unknown_faces"
+
+# Google Sheets Integration
 google_sheets:
-  web_app_url: ""            # Fill with deployed Apps Script URL
-  retry_interval: 300        # 5 minutes
+  web_app_url: "https://script.google.com/macros/s/AKfycbwp_OIwmPKKbUotz-53NPL7f8gt1YJ9Z8n1HpmmtouENlFpzUbDO6lFSjwAuEDF0NTl6w/exec"
+  retry_interval: 300  # seconds (5 minutes)
   max_retries: 3
 
+# LCD Display
+lcd:
+  update_delay: 0.15  # minimum delay between updates (seconds)
+
+# System Timeouts
+timeouts:
+  splash_duration: 5  # seconds
+  message_display: 3  # seconds
+  
+# Job Codes (for attendance menu)
 job_codes:
   "1": "PS Muro"
   "2": "Dasar Menengah"
   "3": "Lanjut"
 
+# Domain Codes (for attendance menu)
 domain_codes:
   "A": "Lab Depok"
   "B": "Lab Kalimalang"
   "C": "Lab Karawaci"
+
 ```
 
 ### Hardware Connections
 
-```
-Raspberry Pi GPIO:
-├─ GPIO17 → Relay (Magnetic Lock Control)
-├─ GPIO22 → Door Sensor (feedback input)
-├─ GPIO27 → Emergency Unlock Button
-└─ UART (GPIO14/15) → Arduino Nano (serial)
-
-Arduino Nano:
-├─ D2 → Fingerprint Sensor TX
-├─ D3 → Fingerprint Sensor RX
-├─ D4 → Relay Control Output
+Arduino Nano
+├─ D3  → Relay Module (Magnetic Door Lock)
+├─ D4  → Emergency Button (INPUT_PULLUP)
+├─ D7  → Touch Sensor (TTP223)
+├─ A4  → I2C SDA
+├─ A5  → I2C SCL
+├─ TX/RX → Raspberry Pi (USB Serial)
 └─ GND → Common Ground
-```
 
----
+I2C Bus
+├─ LCD 20x4 I2C (0x27)
+│  ├─ SDA → A4
+│  ├─ SCL → A5
+│  ├─ VCC → 5V
+│  └─ GND → GND
+│
+└─ Keypad 4x4 + PCF8574 (0x20)
+   ├─ SDA → A4
+   ├─ SCL → A5
+   ├─ VCC → 5V
+   └─ GND → GND
+
+Touch Sensor (TTP223)
+├─ VCC → 5V
+├─ GND → GND
+└─ OUT → D7
+
+Emergency Button
+├─ One Side → D4
+└─ Other Side → GND
+
+Relay Module
+├─ IN  → D3
+├─ VCC → 5V
+└─ GND → GND
+
+Magnetic Door Lock
+├─ Controlled by Relay Module
+└─ External Power Supply (12V)
+
+Communication
+└─ Raspberry Pi 5 ↔ Arduino Nano
+   ├─ USB Serial
+   ├─ Baudrate : 115200
+   └─ JSON-based Communication Protocol
 
 ## 🚀 Quick Start
 
