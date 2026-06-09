@@ -407,14 +407,15 @@ domain_codes:
 
 ### Hardware Connections
 
+```text
 Arduino Nano
-├─ D3  → Relay Module (Magnetic Door Lock)
-├─ D4  → Emergency Button (INPUT_PULLUP)
-├─ D7  → Touch Sensor (TTP223)
-├─ A4  → I2C SDA
-├─ A5  → I2C SCL
+├─ D3    → Relay Module (Magnetic Door Lock)
+├─ D4    → Emergency Button (INPUT_PULLUP)
+├─ D7    → Touch Sensor (TTP223)
+├─ A4    → I2C SDA
+├─ A5    → I2C SCL
 ├─ TX/RX → Raspberry Pi (USB Serial)
-└─ GND → Common Ground
+└─ GND   → Common Ground
 
 I2C Bus
 ├─ LCD 20x4 I2C (0x27)
@@ -435,7 +436,7 @@ Touch Sensor (TTP223)
 └─ OUT → D7
 
 Emergency Button
-├─ One Side → D4
+├─ One Side  → D4
 └─ Other Side → GND
 
 Relay Module
@@ -452,7 +453,7 @@ Communication
    ├─ USB Serial
    ├─ Baudrate : 115200
    └─ JSON-based Communication Protocol
-
+```
 ## 🚀 Quick Start
 
 ### For Desktop Application Users
