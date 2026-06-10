@@ -229,7 +229,7 @@ Core ML/AI processing:
 ## 📁 Folder Structure
 
 ```
-d:\New folder\
+<project-root>/
 │
 ├── 📄 Core Configuration Files
 │   ├── package.json              ← npm scripts & dependencies
@@ -327,12 +327,12 @@ d:\New folder\
 
 #### 1. Install Dependencies
 ```bash
-cd "d:\New folder"
+cd biometric-desktop
 npm install
 
-cd embedding_extractor
+cd biometric/embedding_extractor
 pip install -r requirements.txt
-cd ..
+cd ../..
 ```
 
 #### 2. Start Development Environment
@@ -376,7 +376,7 @@ npm run dev
 #### Step 4: Verify Embeddings
 ```bash
 # Check file exists
-ls "d:\New folder\embeddings.pkl"
+ls embeddings.pkl
 # Should show ~100KB+ file
 ```
 
@@ -390,7 +390,7 @@ ls "d:\New folder\embeddings.pkl"
 
 #### Method 2: Standalone Test
 ```bash
-cd "d:\New folder\face_recognition_test"
+cd biometric/face_recognition_test
 python video_recognition.py
 ```
 
@@ -471,9 +471,9 @@ npm run dev
 **Solution:**
 ```bash
 # Check photos folder exists
-ls "d:\New folder\photos"
+ls photos/
 # Create if missing:
-mkdir "d:\New folder\photos"
+mkdir photos/
 
 # Verify permissions
 # File → Properties → Security → Modify (check box)
@@ -532,7 +532,7 @@ echo "Check Electron console for error details"
 **Solution:**
 ```bash
 # Verify training completed
-ls "d:\New folder\embeddings.pkl"
+ls embeddings.pkl
 
 # If missing, retry enrollment
 # Follow "First Time Enrollment" steps again

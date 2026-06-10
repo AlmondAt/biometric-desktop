@@ -7,8 +7,8 @@ Script untuk deteksi wajah dari video (webcam atau video file). Lebih praktis da
 ### Option 1: Dari Webcam (Recommended - paling gampang)
 
 ```powershell
-cd "d:\New folder\face_recognition_test"
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe video_recognition.py
+cd biometric/face_recognition_test
+python video_recognition.py
 ```
 
 Beres! Webcam akan langsung ke-detect dan recognition jalan real-time.
@@ -16,12 +16,12 @@ Beres! Webcam akan langsung ke-detect dan recognition jalan real-time.
 ### Option 2: Dari Video File
 
 ```powershell
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe video_recognition.py "path/to/video.mp4"
+python video_recognition.py "path/to/video.mp4"
 ```
 
 Contoh:
 ```powershell
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe video_recognition.py "D:\video_test.mp4"
+python video_recognition.py "C:\video_test.mp4"
 ```
 
 ## Keyboard Controls
@@ -97,7 +97,7 @@ recognition_frame_42.jpg
 ### ❌ "ModuleNotFoundError: No module named 'cv2'"
 OpenCV belum install. Jalankan di embedding_extractor folder:
 ```powershell
-cd "d:\New folder\embedding_extractor"
+cd biometric/embedding_extractor
 python -m pip install -r requirements.txt
 ```
 

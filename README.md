@@ -8,17 +8,26 @@ Sistem biometric terintegrasi untuk kontrol akses lab dan manajemen attendance m
 
 ---
 
-## 🎯 Quick Access
+## 🎯 Quick Access (Pilih Berdasarkan Kebutuhan)
 
-- **Desktop App Users:** [TUTORIAL_PENGGUNA.md](TUTORIAL_PENGGUNA.md)
-- **Technical Setup:** [TUTORIAL_TEKNISI.md](TUTORIAL_TEKNISI.md) | [QUICK_START.md](QUICK_START.md)
-- **Google Sheets Setup:** [model/attendance/docs/APPS_SCRIPT_SETUP.md](model/attendance/docs/APPS_SCRIPT_SETUP.md)
-- **System Flow Diagrams:** [model/attendance/docs/ATTENDANCE_FLOW.md](model/attendance/docs/ATTENDANCE_FLOW.md)
-- **Raspberry Pi:** [model/raspy-main-integrated/README.md](model/raspy-main-integrated/README.md)
+### 👤 Pengguna Aplikasi Desktop
+- **📖 User Tutorial:** [docs/pengguna/TUTORIAL_PENGGUNA.md](docs/pengguna/TUTORIAL_PENGGUNA.md) - Panduan lengkap untuk menggunakan aplikasi
+
+### 🔧 Setup & Teknis
+- **⚡ Quick Start:** [docs/teknisi/QUICK_START.md](docs/teknisi/QUICK_START.md) - Setup cepat untuk developer
+- **📘 Technical Tutorial:** [docs/teknisi/TUTORIAL_TEKNISI.md](docs/teknisi/TUTORIAL_TEKNISI.md) - Setup lengkap semua komponen
+- **🏗️ System Documentation:** [docs/teknisi/SYSTEM_DOCUMENTATION.md](docs/teknisi/SYSTEM_DOCUMENTATION.md) - Arsitektur sistem detail
+- **🔗 Integration Guide:** [docs/teknisi/INTEGRATION_GUIDE.md](docs/teknisi/INTEGRATION_GUIDE.md) - Panduan integrasi
+
+### 🎯 Modul Spesifik
+- **Face Recognition Testing:** [biometric/face_recognition_test/README.md](biometric/face_recognition_test/README.md)
+- **ML Pipeline:** [biometric/embedding_extractor/README.md](biometric/embedding_extractor/README.md)
+- **Raspberry Pi Main System:** [raspberry_pi/raspy-main-integrated/README.md](raspberry_pi/raspy-main-integrated/README.md)
+- **Attendance & Google Sheets:** [attendance/docs/APPS_SCRIPT_SETUP.md](attendance/docs/APPS_SCRIPT_SETUP.md)
 
 ---
 
-## 📋 Complete Repository Structure
+## � Struktur Repository (Baru - Terorganisir)
 
 ```
 biometric-desktop/
@@ -28,7 +37,6 @@ biometric-desktop/
 │   │   ├── App.tsx                     # Main app container
 │   │   ├── EnrollmentView.tsx          # Face/fingerprint enrollment UI
 │   │   ├── SetupWizard.tsx             # Initial system setup
-│   │   ├── index.css                   # Styling
 │   │   └── main.tsx                    # Entry point
 │   │
 │   ├── electron/                       # Electron Main Process & IPC
@@ -37,95 +45,110 @@ biometric-desktop/
 │   │   ├── api.ts                      # Express backend (:3001)
 │   │   └── database.ts                 # SQLite database layer
 │   │
-│   ├── package.json                    # Node dependencies & build scripts
-│   ├── tsconfig.json                   # TypeScript configuration
+│   ├── index.html                      # HTML template
+│   ├── package.json                    # Node dependencies
+│   ├── tsconfig.json                   # TypeScript config
 │   └── vite.config.ts                  # Vite bundler config
 │
-├── 🤖 embedding_extractor/             # ⭐ Core Face Embedding ML Pipeline (ROOT)
-│   ├── main.py                         # Extract embeddings from photos directory
-│   ├── training_api.py                 # HTTP API called by desktop app
-│   ├── embedding_store.py              # Manage embedding keys
-│   ├── facenet_utils.py                # FaceNet model wrapper
-│   ├── mtcnn_utils.py                  # MTCNN face detection
-│   ├── data_augmentation.py            # Image augmentation for training
-│   ├── config.py                       # ML config (paths, thresholds)
-│   ├── requirements.txt                # Python dependencies
-│   ├── README.md                       # ML pipeline documentation
-│   └── tests/                          # Unit tests for ML pipeline
+├── 🤖 biometric/                       # ⭐ ML PIPELINE & FACE RECOGNITION
+│   │
+│   ├── embedding_extractor/            # Face Embedding ML Pipeline
+│   │   ├── main.py                     # Extract embeddings from photos
+│   │   ├── training_api.py             # HTTP API (called by desktop app)
+│   │   ├── embedding_store.py          # Manage embedding storage
+│   │   ├── facenet_utils.py            # FaceNet model wrapper
+│   │   ├── mtcnn_utils.py              # MTCNN face detection
+│   │   ├── data_augmentation.py        # Image augmentation
+│   │   ├── config.py                   # ML configuration
+│   │   ├── requirements.txt            # Python dependencies
+│   │   └── README.md                   # Pipeline documentation
+│   │
+│   └── face_recognition_test/          # Face Recognition Testing Module
+│       ├── recognition.py              # Test recognition against embeddings
+│       ├── video_recognition.py        # Real-time camera testing
+│       ├── config.py                   # Test configuration
+│       └── README.md                   # Testing guide
 │
-├── 🏗️ model/                           # Raspberry Pi & Backend Systems
+├── 🍓 raspberry_pi/                    # RASPBERRY PI & EMBEDDED SYSTEMS
 │   │
-│   ├── attendance/                     # 📊 ATTENDANCE & GOOGLE SHEETS INTEGRATION
-│   │   ├── README.md                   # Module overview
-│   │   ├── AppsScript/                 # Google Apps Script deployment
-│   │   ├── spreadsheet-template/       # Google Sheets templates
-│   │   │   ├── Attendance_Template.csv # Sample data
-│   │   │   └── Template_Instructions.md
-│   │   │
-│   │   └── docs/                       # Complete documentation
-│   │       ├── SPREADSHEET_STRUCTURE.md    # Data schema & mapping
-│   │       ├── APPS_SCRIPT_SETUP.md       # Google Sheets setup guide
-│   │       └── ATTENDANCE_FLOW.md         # Complete system flow with diagrams
-│   │
-│   ├── raspy-main-integrated/          # 🎯 MAIN SYSTEM (Raspberry Pi)
+│   ├── raspy-main-integrated/          # Main System (State Machine)
 │   │   ├── main_integrated.py          # System state machine & main loop
 │   │   ├── config.example.yaml         # Configuration template
-│   │   ├── modules/
-│   │   │   ├── absensi_utils.py        # Google Sheets upload + CSV fallback
-│   │   │   ├── biometric.py            # Biometric verification wrapper
-│   │   │   ├── embedded_api.py         # Internal HTTP server
+│   │   │
+│   │   ├── modules/                    # Core modules
+│   │   │   ├── absensi_utils.py        # Google Sheets + CSV upload
+│   │   │   ├── biometric.py            # Fingerprint + face verification
+│   │   │   ├── embedded_api.py         # HTTP server
 │   │   │   ├── logger.py               # Event logging
 │   │   │   └── serial_nanonano.py      # Arduino serial communication
 │   │   │
 │   │   ├── face/                       # Face recognition module
-│   │   │   ├── capture_face.py         # Capture from camera
-│   │   │   ├── arcface_utils.py        # ArcFace embeddings (alternative)
+│   │   │   ├── capture_face.py         # Camera capture
+│   │   │   ├── arcface_utils.py        # ArcFace embeddings
 │   │   │   ├── head_pose.py            # Head pose detection
 │   │   │   ├── manage_faces.py         # Face management
 │   │   │   └── mtcnn_utils.py          # MTCNN detection
 │   │   │
-│   │   ├── arduino/                    # Arduino Nano firmware
+│   │   ├── arduino/                    # Arduino firmware
 │   │   │   └── arduino_firmware.ino    # Fingerprint & door control
 │   │   │
-│   │   ├── config.example.yaml         # System configuration
 │   │   ├── requirements.txt            # Python dependencies
-│   │   ├── QUICKSTART.md               # Setup guide
+│   │   ├── QUICKSTART.md               # Raspberry Pi setup
 │   │   └── README.md                   # System documentation
 │   │
-│   ├── acquisition/                    # Face Data Acquisition (for training)
-│   │   ├── embedding_extractor/        # Deprecated - use root version
-│   │   └── face_recognition_test/      # Face recognition testing
-│   │       ├── recognition.py          # Test recognition against embeddings
-│   │       ├── video_recognition.py    # Real-time camera test
-│   │       └── config.py               # Test configuration
+│   └── raspy-biometric-backend/        # Biometric Backend API Server
+│       ├── api_server.py               # REST API server
+│       ├── config.yaml                 # Configuration
+│       ├── modules/
+│       │   ├── db_manager.py           # Database management
+│       │   └── face_matcher.py         # Face matching logic
+│       ├── tools/
+│       │   ├── enroll_face.py          # Face enrollment tool
+│       │   ├── enroll_fingerprint.py   # Fingerprint enrollment
+│       │   └── list_users.py           # List users utility
+│       ├── requirements.txt            # Dependencies
+│       ├── QUICKSTART.md               # Setup guide
+│       └── README.md                   # API documentation
+│
+├── 📊 attendance/                      # ATTENDANCE & GOOGLE SHEETS
+│   ├── AppsScript/                     # Google Apps Script code
+│   │   └── [Google Apps Script files]
 │   │
-│   ├── raspy-biometric-backend/        # Raspberry Pi API Server (Flask)
-│   ├── training/                       # Model Training (Future)
-│   └── inference/                      # Inference Scripts (Future)
+│   ├── spreadsheet-template/           # Google Sheets templates
+│   │   ├── Attendance_Template.csv     # Sample CSV
+│   │   └── Template_Instructions.md
+│   │
+│   └── docs/                           # Complete documentation
+│       ├── SPREADSHEET_STRUCTURE.md    # Data schema & mapping
+│       ├── APPS_SCRIPT_SETUP.md        # Google Sheets setup
+│       └── ATTENDANCE_FLOW.md          # System flow with diagrams
 │
-├── 📚 docs/                            # Project Documentation
-│   ├── SYSTEM_DOCUMENTATION.md         # System architecture
-│   ├── INTEGRATION_GUIDE.md            # Integration instructions
-│   ├── ALUR_APLIKASI_DETAIL.md         # Detailed application flow
-│   └── [other documentation files]
+├── 📚 docs/                            # PROJECT DOCUMENTATION
+│   ├── teknisi/                        # Technical documentation
+│   │   ├── SYSTEM_DOCUMENTATION.md     # Architecture & systems
+│   │   ├── QUICK_START.md              # Quick start guide
+│   │   ├── TUTORIAL_TEKNISI.md         # Full technical tutorial
+│   │   ├── INTEGRATION_GUIDE.md        # Integration instructions
+│   │   ├── ALUR_APLIKASI_DETAIL.md    # Detailed application flow
+│   │   └── ADD_USER_WITH_ID_README.md  # User ID fixing utility
+│   │
+│   └── pengguna/                       # User documentation
+│       └── TUTORIAL_PENGGUNA.md        # End-user tutorial
 │
-├── 📦 scripts/                         # Build & Utility Scripts
-│   └── build-python-runtime.ps1        # Build bundled Python for distribution
+├── 📦 scripts/                         # BUILD & UTILITIES
+│   ├── build-python-runtime.ps1        # Build Python bundled runtime
+│   └── add-user-with-id.js             # User ID management utility
 │
-├── Root Documentation
-│   ├── README.md                       # This file (Overview & Setup)
-│   ├── QUICK_START.md                  # Quick start guide
-│   ├── PRE_GITHUB_CHECKLIST.md         # Before pushing to GitHub
-│   ├── TUTORIAL_PENGGUNA.md            # User tutorial (Indonesian)
-│   ├── TUTORIAL_TEKNISI.md             # Technical tutorial (Indonesian)
-│   ├── SYSTEM_DOCUMENTATION.md         # System architecture details
-│   └── [other documentation files]
+├── Configuration & Build Files
+│   ├── package.json                    # Node.js dependencies & scripts
+│   ├── package-lock.json               # Dependency lock file
+│   ├── tsconfig.json                   # TypeScript configuration
+│   ├── vite.config.ts                  # Vite bundler config
+│   ├── electron-builder.bundled.json   # Electron build config
+│   └── .env.example                    # Environment template
 │
-└── Configuration Files
-    ├── package.json                    # Node.js main project config
-    ├── tsconfig.json                   # TypeScript configuration
-    ├── vite.config.ts                  # Vite bundler config
-    └── electron-builder.bundled.json   # Electron build config
+└── Version Control
+    └── .gitignore                      # Git ignore rules
 ```
 
 ---

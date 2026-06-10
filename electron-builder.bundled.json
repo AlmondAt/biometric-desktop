@@ -13,7 +13,7 @@
   ],
   "extraResources": [
     {
-      "from": "embedding_extractor",
+      "from": "biometric/embedding_extractor",
       "to": "app-resources/embedding_extractor",
       "filter": [
         "**/*"

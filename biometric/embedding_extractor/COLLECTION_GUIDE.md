@@ -13,8 +13,8 @@ Tidak perlu beda-beda step lagi. Just capture foto, dan script otomatis:
 ### Single Command - Mulai Collection
 
 ```powershell
-cd "d:\New folder\embedding_extractor"
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe collect_and_extract.py
+cd biometric/embedding_extractor
+python collect_and_extract.py
 ```
 
 Script akan ask User ID:
@@ -261,7 +261,7 @@ Setelah collection selesai:
 
 1. **Deploy recognition**
    ```powershell
-   cd "d:\New folder\face_recognition_test"
+   cd biometric/face_recognition_test
    python video_recognition.py
    ```
 

@@ -1130,7 +1130,7 @@ app.put('/api/users/:id', async (request, response) => {
     })
 
     if (existing.faceEmbeddingKey && updated && existing.fullName !== updated.fullName) {
-      const embeddingScript = getBundledResourcePath('embedding_extractor', 'embedding_store.py')
+      const embeddingScript = getBundledResourcePath('biometric', 'embedding_extractor', 'embedding_store.py')
       await runPythonScript(embeddingScript, ['rename', getEmbeddingsPath(), existing.faceEmbeddingKey, updated.fullName], path.dirname(embeddingScript))
       markFaceEnrollment(userId, updated.fullName, existing.faceEmbeddingCount)
     }
@@ -1157,7 +1157,7 @@ app.delete('/api/users/:id', async (request, response) => {
     }
 
     if (user.faceEmbeddingKey) {
-      const embeddingScript = getBundledResourcePath('embedding_extractor', 'embedding_store.py')
+      const embeddingScript = getBundledResourcePath('biometric', 'embedding_extractor', 'embedding_store.py')
       await runPythonScript(embeddingScript, ['delete', getEmbeddingsPath(), user.faceEmbeddingKey], path.dirname(embeddingScript))
     }
 
@@ -1221,7 +1221,7 @@ app.post('/api/enrollment/face', async (request, response) => {
   const user = enrollmentSubject.user
 
   ensureTempDir()
-  const trainingScript = getBundledResourcePath('embedding_extractor', 'training_api.py')
+  const trainingScript = getBundledResourcePath('biometric', 'embedding_extractor', 'training_api.py')
   const payloadPath = path.join(getTempDir(), `training-${Date.now()}-${userId}.json`)
 
   try {
