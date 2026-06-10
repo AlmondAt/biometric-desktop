@@ -27,7 +27,7 @@ Sistem biometric terintegrasi untuk kontrol akses lab dan manajemen attendance m
 
 ---
 
-## � Struktur Repository (Baru - Terorganisir)
+## � Struktur Repository
 
 ```
 biometric-desktop/
