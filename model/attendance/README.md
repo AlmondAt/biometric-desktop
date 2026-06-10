@@ -2,390 +2,498 @@
 
 ## Overview
 
-Modul attendance bertanggung jawab untuk mengelola integrasi Google Sheets dan menyimpan attendance records dari Raspberry Pi.
+Modul Attendance bertanggung jawab untuk mengelola proses absensi dan integrasi Google Sheets pada sistem Biometric Lab berbasis Raspberry Pi.
+
+Attendance module digunakan untuk:
+
+* Menyimpan data absensi
+* Mengirim data ke Google Sheets
+* Menyimpan fallback data ke CSV saat offline
+* Mengelola retry upload otomatis
+* Menghitung histori akses pengguna
+
+Google Apps Script bertugas sebagai backend yang menerima data dari Raspberry Pi dan melakukan proses tambahan seperti:
+
+* Generate timestamp
+* Generate status
+* Generate access count
+* Generate mutu shift
+* Generate total shift
 
 ---
 
-## Folder Structure
+# Folder Structure
 
-```
+```text
 model/attendance/
-├── README.md                          # This file
-├── AppsScript/                        # Google Apps Script code
-│   └── code.gs                        # (if exists from deployment)
-├── spreadsheet-template/              # Google Sheets template
-│   ├── Attendance_Template.csv        # Sample data structure
-│   └── Template_Instructions.md       # How to use template
-└── docs/                              # Documentation
-    ├── SPREADSHEET_STRUCTURE.md       # Sheet layout & data mapping
-    ├── APPS_SCRIPT_SETUP.md           # Google Apps Script deployment guide
-    └── ATTENDANCE_FLOW.md             # Complete system flow diagram
+├── README.md
+├── AppsScript/
+│   └── code.gs
+├── spreadsheet-template/
+│   ├── Attendance_Template.csv
+│   └── Template_Instructions.md
+└── docs/
+    ├── SPREADSHEET_STRUCTURE.md
+    ├── APPS_SCRIPT_SETUP.md
+    └── ATTENDANCE_FLOW.md
 ```
 
 ---
 
-## Quick Start
+# Quick Start
 
-### 1. Setup Google Sheets
-```bash
-1. Create Google Sheet: https://sheets.google.com
-2. Create sheet named "Attendance"
-3. Add header row with columns (A-P):
-   ID, Nama, Job, Domain, Domisili, Shift_A, Shift_B, Shift_C, Shift_D, Shift_E, 
-   Tanggal, Waktu, Status, Akses, Metode, Foto
+## 1. Setup Google Sheets
+
+Buat spreadsheet baru.
+
+Nama sheet:
+
+```text
+Attendance
 ```
 
-### 2. Deploy Google Apps Script
-```bash
-1. In Google Sheet, click: Tools → Script editor
-2. Copy code from docs/APPS_SCRIPT_SETUP.md
-3. Click Deploy → New Deployment
-4. Select: Web app
-5. Click Deploy
-6. Copy the Web App URL
+Struktur:
+
+| A       | B  | C    | D      | E       | F      | G       | H      | I       | J      | K       | L      | M       | N        | O      | P     | Q           |
+| ------- | -- | ---- | ------ | ------- | ------ | ------- | ------ | ------- | ------ | ------- | ------ | ------- | -------- | ------ | ----- | ----------- |
+| Tanggal | ID | Nama | S1 Ket | S1 Mutu | S2 Ket | S2 Mutu | S3 Ket | S3 Mutu | S4 Ket | S4 Mutu | S5 Ket | S5 Mutu | Domisili | Status | Akses | Total Shift |
+
+---
+
+## 2. Deploy Google Apps Script
+
+```text
+Extensions
+      ↓
+Apps Script
+      ↓
+Paste code.gs
+      ↓
+Deploy
+      ↓
+Web App
+      ↓
+Copy URL
 ```
 
-### 3. Configure Raspberry Pi
+---
+
+## 3. Configure Raspberry Pi
+
 ```yaml
-# config.yaml
 google_sheets:
-  web_app_url: "https://script.google.com/macros/d/[ID]/usercontent"
-  retry_interval: 300      # 5 minutes
+  web_app_url: "https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxx/exec"
+
+  retry_interval: 300
   max_retries: 3
 ```
 
-### 4. Test System
+---
+
+## 4. Test Connection
+
 ```bash
-# Verify connection
-curl -X POST https://script.google.com/macros/d/[ID]/usercontent \
-  -H "Content-Type: application/json" \
-  -d '{"id":"101","name":"Test","tanggal":"2026-06-09","waktu":"14:30:00","status":"Registered"}'
+curl -X POST \
+"https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxx/exec" \
+-H "Content-Type: application/json" \
+-d '{
+"id":"5",
+"name":"Fariz",
+"domisili":"Lab Depok",
+"shift_A":"2",
+"shift_B":"3",
+"shift_C":"5",
+"shift_D":"6",
+"shift_E":"4"
+}'
+```
 
-# Response: OK
+Response:
+
+```json
+{
+  "status":"success",
+  "total_shift":14
+}
 ```
 
 ---
 
-## Key Components
+# Key Components
 
-### 1. **absensi_utils.py** (in raspy-main-integrated/)
+## 1. absensi_utils.py
 
-Responsible for:
-- Building attendance payloads
-- Uploading to Google Sheets
-- Handling CSV fallback
-- Retry mechanism
+Bertanggung jawab untuk:
 
-Key Classes:
-- `AbsensiManager` - Main attendance handler
-  - `upload_to_spreadsheet()` - Send data to Google Sheets
-  - `_build_payload()` - Format data for upload
-  - `_save_to_pending_csv()` - Save failed uploads
+* Build attendance payload
+* Upload ke Google Sheets
+* Menyimpan pending upload
+* Retry upload otomatis
 
-### 2. **Google Apps Script** (code.gs)
-
-Responsible for:
-- Receiving HTTP POST from Raspberry Pi
-- Validating payload
-- Appending to Google Sheet
-- Returning success/failure status
-
-Key Function:
-- `doPost(e)` - Receives & processes attendance data
-
-### 3. **Google Sheets**
-
-Stores:
-- Attendance records (primary)
-- Configuration (optional)
-- Usage statistics & reports (optional)
-
-Columns:
-- ID, Nama, Job, Domain, Domisili
-- Shift_A through Shift_E
-- Tanggal, Waktu, Status, Akses, Metode, Foto
-
----
-
-## Data Flow
-
-```
-Raspberry Pi System
-    ↓
-Biometric Verification (fingerprint + face)
-    ↓
-User Selects: Job, Domain, Shift
-    ↓
-absensi_utils.upload_to_spreadsheet()
-    ├─ Build JSON payload
-    ├─ POST to Google Apps Script
-    │
-    ├─ Success (HTTP 200)
-    │   └─ Data stored in Google Sheets
-    │
-    └─ Failure (timeout/error)
-        └─ Save to CSV (logs/absensi_pending.csv)
-            └─ Retry on next user or scheduled timer
-```
-
----
-
-## File Descriptions
-
-### Spreadsheet Template Files
-
-#### `Attendance_Template.csv`
-Sample CSV with example data showing correct column structure:
-```
-101,John Doe,PS Muro,Lab Depok,Jakarta,1,1,0,0,0,2026-06-09,14:30:15,Registered,1,biometrik,...
-```
-
-**Use:** Import into Google Sheets to validate structure
-
-#### `Template_Instructions.md`
-Step-by-step instructions for:
-- Importing template into Google Sheets
-- Setting up formulas
-- Configuring Raspberry Pi
-- Field descriptions
-- Troubleshooting
-
-### Documentation Files
-
-#### `SPREADSHEET_STRUCTURE.md`
-Detailed documentation of:
-- Sheet names & purposes
-- Column definitions & data types
-- Data examples
-- Mapping from Raspberry Pi
-- CSV fallback mechanism
-- Data validation rules
-
-**Read this for:** Understanding the data structure
-
-#### `APPS_SCRIPT_SETUP.md`
-Complete guide for:
-- Creating Google Sheet
-- Writing Apps Script code
-- Deploying as Web App
-- Getting Web App URL
-- Configuring Raspberry Pi
-- Testing the system
-- Error handling
-- Advanced features
-
-**Read this for:** Setting up Google Sheets integration
-
-#### `ATTENDANCE_FLOW.md`
-Complete system flow documentation:
-- System architecture diagram
-- Phase-by-phase flow with diagrams
-- State machine visualization
-- Error scenarios
-- Network failure handling
-- Photo capture & storage
-- Database structure
-- Monitoring & metrics
-- Troubleshooting flowchart
-
-**Read this for:** Understanding the complete system flow
-
----
-
-## Integration with Raspberry Pi
-
-The attendance module is called by `raspy-main-integrated/main_integrated.py`:
+Fungsi utama:
 
 ```python
-from modules.absensi_utils import AbsensiManager
+upload_to_spreadsheet()
+_build_payload()
+_save_to_pending_csv()
+_retry_pending_uploads()
+```
 
-# Initialize
-self.absensi = AbsensiManager(self.config, self.logger)
+---
 
-# During attendance confirmation
+## 2. Google Apps Script
+
+Bertanggung jawab untuk:
+
+* Menerima HTTP POST
+* Memvalidasi data
+* Menghitung mutu shift
+* Menghitung total shift
+* Menghitung jumlah akses
+* Menentukan status
+* Menyimpan ke Google Sheets
+
+Fungsi utama:
+
+```javascript
+doPost(e)
+```
+
+---
+
+## 3. Google Sheets
+
+Menyimpan:
+
+* Timestamp
+* User ID
+* Nama
+* Shift
+* Mutu
+* Domisili
+* Status
+* Akses
+* Total Shift
+
+---
+
+# Spreadsheet Structure
+
+| Col | Field        |
+| --- | ------------ |
+| A   | Tanggal      |
+| B   | ID           |
+| C   | Nama         |
+| D   | Shift 1 Ket  |
+| E   | Shift 1 Mutu |
+| F   | Shift 2 Ket  |
+| G   | Shift 2 Mutu |
+| H   | Shift 3 Ket  |
+| I   | Shift 3 Mutu |
+| J   | Shift 4 Ket  |
+| K   | Shift 4 Mutu |
+| L   | Shift 5 Ket  |
+| M   | Shift 5 Mutu |
+| N   | Domisili     |
+| O   | Status       |
+| P   | Akses        |
+| Q   | Total Shift  |
+
+---
+
+# Data Flow
+
+```text
+Touch Sensor
+      ↓
+Fingerprint Verification
+      ↓
+Face Recognition
+      ↓
+Attendance Form
+      ↓
+Build Payload
+      ↓
+Google Apps Script
+      ↓
+Google Sheets
+```
+
+---
+
+# Payload Structure
+
+Raspberry Pi mengirim:
+
+```json
+{
+  "id":"5",
+  "name":"Fariz",
+  "domisili":"Lab Depok",
+  "shift_A":"2",
+  "shift_B":"3",
+  "shift_C":"5",
+  "shift_D":"6",
+  "shift_E":"4"
+}
+```
+
+Field berikut tidak dikirim:
+
+```text
+Tanggal
+Status
+Akses
+Mutu
+Total Shift
+```
+
+karena dibuat oleh Apps Script.
+
+---
+
+# Shift Mapping
+
+| Kode | Mutu |
+| ---- | ---- |
+| 0    | 0    |
+| 1    | 1    |
+| 2    | 1.5  |
+| 3    | 2.5  |
+| 4    | 2    |
+| 5    | 3    |
+| 6    | 5    |
+| 7    | 6    |
+| 8    | 4    |
+| 9    | -    |
+| A    | 3    |
+| B    | 2    |
+| C    | -    |
+
+---
+
+# Registered User Example
+
+Payload:
+
+```json
+{
+  "id":"5",
+  "name":"Fariz",
+  "domisili":"Lab Depok",
+  "shift_A":"2",
+  "shift_B":"3",
+  "shift_C":"5",
+  "shift_D":"6",
+  "shift_E":"4"
+}
+```
+
+Stored Data:
+
+```text
+2026-05-30 13:26:11 | 5 | Fariz | 2 | 1.5 | 3 | 2.5 | 5 | 3 | 6 | 5 | 4 | 2 | Lab Depok | Registered | 1 | 14
+```
+
+---
+
+# Unregistered User Example
+
+Payload:
+
+```json
+{}
+```
+
+Stored Data:
+
+```text
+2026-05-30 13:27:20 | | | | | | | | | | | | | - | Unregistered | 1 | 0
+```
+
+---
+
+# CSV Fallback
+
+Jika upload gagal:
+
+```text
+Google Sheets Offline
+      ↓
+Save CSV
+      ↓
+logs/absensi_pending.csv
+```
+
+---
+
+# CSV Structure
+
+```csv
+timestamp,id,name,domisili,shift_A,shift_B,shift_C,shift_D,shift_E
+2026-06-10 14:30:00,5,Fariz,Lab Depok,2,3,5,6,4
+```
+
+---
+
+# Retry Logic
+
+```text
+Upload Failed
+      ↓
+Save Pending CSV
+      ↓
+Retry
+      ↓
+Upload Success
+```
+
+Konfigurasi:
+
+```yaml
+retry_interval: 300
+max_retries: 3
+```
+
+---
+
+# Integration Example
+
+```python
 record = {
     "id": user_id,
     "name": user_name,
-    "job": user_job_selection,
-    "domain": user_domain_selection,
-    "domisili": user_domisili_input,
-    "shift_A": shift_a_status,
-    # ... other fields
+    "domisili": domisili,
+    "shift_A": shift_a,
+    "shift_B": shift_b,
+    "shift_C": shift_c,
+    "shift_D": shift_d,
+    "shift_E": shift_e
 }
 
-# Upload
 success = self.absensi.upload_to_spreadsheet(record)
 ```
 
 ---
 
-## Configuration
+# Monitoring
 
-Edit `model/raspy-main-integrated/config.yaml`:
+## Pending Upload
 
-```yaml
-google_sheets:
-  web_app_url: ""                    # Fill with deployed URL
-  retry_interval: 300                # Seconds (5 min default)
-  max_retries: 3                     # Number of retry attempts
-
-logging:
-  pending_csv: "logs/absensi_pending.csv"              # Failed submissions
-  attendance_history_csv: "logs/attendance_history.csv" # Local tracking
-```
-
----
-
-## Common Use Cases
-
-### Use Case 1: Normal Attendance (Registered User)
-```
-1. User places finger on sensor → Fingerprint match
-2. User faces camera → Face recognition match
-3. User selects Job (e.g., "PS Muro")
-4. User selects Domain (e.g., "Lab Depok")
-5. User selects Shift (e.g., Shift A, B)
-6. System uploads to Google Sheets
-7. Record appears in Google Sheet immediately
-```
-
-### Use Case 2: Unregistered User
-```
-1. User places finger → No match found
-2. User faces camera → No face match
-3. System captures photo
-4. System records as "Unregistered"
-5. Admin notified (optional email)
-6. Photo saved for manual review
-7. Record in Google Sheet with Status="Unregistered"
-```
-
-### Use Case 3: Network Offline
-```
-1. User attendance recorded locally
-2. Upload to Google Sheets fails
-3. System saves to CSV (logs/absensi_pending.csv)
-4. Network comes back online
-5. System automatically retries
-6. Record syncs to Google Sheets
-```
-
----
-
-## Monitoring
-
-### Check Pending Records
 ```bash
-cd ~/Skripsi/lab
-cat logs/absensi_pending.csv  # Failed submissions
-cat logs/attendance_history.csv  # Local history
+cat logs/absensi_pending.csv
 ```
 
-### Check System Logs
+## Attendance History
+
 ```bash
-tail -f logs/events.log        # System events
-tail -f logs/access.log        # Attendance events
+cat logs/attendance_history.csv
 ```
 
-### Monitor Google Sheets
+## Event Logs
+
+```bash
+tail -f logs/events.log
 ```
-1. Check "Attendance" sheet for new records
-2. Check "Configuration" sheet for sync status
-3. Review any "Unregistered" entries for manual action
+
+---
+
+# Troubleshooting
+
+## Data Tidak Masuk Google Sheets
+
+Periksa:
+
+```text
+Apps Script Deployment
+Internet Connection
+Spreadsheet Permission
+Web App URL
 ```
 
 ---
 
-## Troubleshooting
+## Status Salah
 
-### Records not appearing in Google Sheets
-**Check:**
-1. Google Apps Script deployed? (Tools → Script editor)
-2. Web App URL correct in config.yaml?
-3. Network connectivity? (ping google.com)
-4. Check logs: `tail -f logs/events.log`
+Periksa payload:
 
-**If offline:**
-- Records saved in `logs/absensi_pending.csv`
-- Will sync when online
+```json
+{
+  "id":"5",
+  "name":"Fariz"
+}
+```
 
-### Google Apps Script errors
-**Check:**
-1. Apps Script → Execution log
-2. Verify code is correct (see APPS_SCRIPT_SETUP.md)
-3. Check permissions are set to "Anyone"
-
-### Photos not saving
-**Check:**
-1. Camera module connected?
-2. Disk space available? (df -h)
-3. Log directory permissions? (ls -la logs/)
+harus memiliki ID dan Nama.
 
 ---
 
-## Best Practices
+## Total Shift Salah
 
-1. **Regular Backups**
-   - Download Google Sheet backup weekly
-   - Archive old data to separate sheet
+Periksa:
 
-2. **Monitor Unregistered**
-   - Review daily for security issues
-   - Enroll legitimate new users
-   - Report suspicious activity
-
-3. **Network Reliability**
-   - Ensure stable WiFi connection
-   - Set realistic retry intervals
-   - Monitor offline periods
-
-4. **Data Privacy**
-   - Limit Google Sheet sharing
-   - Regular photo cleanup (> 30 days)
-   - Compliance with data protection rules
-
-5. **System Health**
-   - Monitor attendance logs
-   - Check sensor calibration
-   - Verify photo quality
+```text
+Shift Mapping
+Apps Script
+Spreadsheet Header
+```
 
 ---
 
-## Support & Documentation
+# Documentation
 
-For more details, see:
-- [SPREADSHEET_STRUCTURE.md](./docs/SPREADSHEET_STRUCTURE.md) - Data schema
-- [APPS_SCRIPT_SETUP.md](./docs/APPS_SCRIPT_SETUP.md) - Google Sheets setup
-- [ATTENDANCE_FLOW.md](./docs/ATTENDANCE_FLOW.md) - Complete system flow
-- [Template Instructions](./spreadsheet-template/Template_Instructions.md) - Template usage
-
----
-
-## Version Information
-
-- **Module Version:** 1.0
-- **Created:** June 2026
-- **Compatible with:** Biometric Desktop v1.0
-- **Python Version:** 3.8+
-- **Google Sheets API:** Google Apps Script v8
+* SPREADSHEET_STRUCTURE.md
+* APPS_SCRIPT_SETUP.md
+* ATTENDANCE_FLOW.md
+* Template_Instructions.md
 
 ---
 
-## License & Credits
+# Version Information
 
-Part of: **Biometric Lab Access Control System**  
-Developed for: **Robotika Laboratory**  
-Created by: Lab Robotika Team, 2026
+Module Version : 2.0
 
----
+Compatible With:
 
-## Next Steps
-
-1. Follow [APPS_SCRIPT_SETUP.md](./docs/APPS_SCRIPT_SETUP.md) to set up Google Sheets
-2. Test with [SPREADSHEET_STRUCTURE.md](./docs/SPREADSHEET_STRUCTURE.md) reference
-3. Monitor with [ATTENDANCE_FLOW.md](./docs/ATTENDANCE_FLOW.md) guidelines
-4. Review logs regularly for system health
+```text
+Biometric Desktop
+Google Apps Script
+Google Sheets Attendance System
+```
 
 ---
 
-**Questions or issues?** Check the troubleshooting sections in the documentation files or review system logs at `logs/events.log`.
+# Architecture Summary
+
+```text
+Fingerprint
+      +
+Face Recognition
+      ↓
+Attendance Form
+      ↓
+Raspberry Pi
+      ↓
+Google Apps Script
+      ↓
+Google Sheets
+
+Stored:
+- Timestamp
+- ID
+- Nama
+- Shift 1 Ket
+- Shift 1 Mutu
+- Shift 2 Ket
+- Shift 2 Mutu
+- Shift 3 Ket
+- Shift 3 Mutu
+- Shift 4 Ket
+- Shift 4 Mutu
+- Shift 5 Ket
+- Shift 5 Mutu
+- Domisili
+- Status
+- Akses
+- Total Shift
+```
