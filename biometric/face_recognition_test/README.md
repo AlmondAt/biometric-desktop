@@ -33,10 +33,10 @@ test_photos/
 
 ```powershell
 # Pastikan sudah di folder ini
-cd "d:\New folder\face_recognition_test"
+cd biometric/face_recognition_test
 
-# Jalankan dengan Python 3.10
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe recognition.py
+# Jalankan dengan Python
+python recognition.py
 ```
 
 ### 3. Interpretasi Results
@@ -104,7 +104,7 @@ FACENET_DEVICE = 'cuda'  # atau 'cpu'
 
 ## Notes
 
-- Script ini assume bahwa `embeddings.pkl` sudah ada di parent directory (`d:\New folder\`)
+- Script ini assume bahwa `embeddings.pkl` sudah ada di project root directory
 - MTCNN digunakan untuk detect face
 - FaceNet digunakan untuk extract embedding
 - Comparison menggunakan cosine similarity

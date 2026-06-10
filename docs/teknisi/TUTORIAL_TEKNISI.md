@@ -37,8 +37,8 @@
 ### 1. Clone Repository
 ```powershell
 # Windows PowerShell
-git clone <repo-url> "d:\New folder"
-cd "d:\New folder"
+git clone <repo-url> biometric-desktop
+cd biometric-desktop
 ```
 
 ### 2. Install Python Dependencies
@@ -72,6 +72,7 @@ SIMILARITY_THRESHOLD = 0.60      # Threshold pengenalan wajah
 MODEL_PATH = "./models"           # Path model FaceNet
 AUGMENTATION_ENABLED = True       # Enable data augmentation
 DATABASE_PATH = "./data"          # Path database lokal
+EMBEDDINGS_PATH = "./embeddings.pkl"  # Path embedding storage
 ```
 
 ### Tahap 2: Konfigurasi Raspy Connection
@@ -278,7 +279,7 @@ BATCH_SIZE = 8          # Increase batch processing
 **Debug:**
 ```powershell
 # Cek file embeddings.pkl
-ls "d:\New folder\embeddings.pkl"
+ls embeddings.pkl
 
 # Lihat console/logs saat training
 # Cari error messages di training process

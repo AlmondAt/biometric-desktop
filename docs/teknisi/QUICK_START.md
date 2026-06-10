@@ -10,7 +10,7 @@
 
 ### 1. Start Backend & Frontend
 ```powershell
-cd "d:\New folder"
+cd biometric-desktop  # or your project root directory
 npm run dev
 ```
 
@@ -37,14 +37,14 @@ Wait untuk:
 ### 3. Verify embeddings.pkl Created
 ```powershell
 # Check file exists
-ls "d:\New folder\embeddings.pkl"
+ls embeddings.pkl
 
 # Should show file size (roughly 100KB+)
 ```
 
 ### 4. Test Recognition with Video
 ```powershell
-cd "d:\New folder\face_recognition_test"
+cd biometric/face_recognition_test
 python video_recognition.py
 ```
 
@@ -144,7 +144,7 @@ with open('embeddings.pkl', 'rb') as f:
 ### Reset system (if needed)
 ```powershell
 # Delete embeddings to start fresh
-rm "d:\New folder\embeddings.pkl"
+rm embeddings.pkl
 
 # Or delete specific user data (Python):
 # (Edit embeddings dengan pickle, remove user)

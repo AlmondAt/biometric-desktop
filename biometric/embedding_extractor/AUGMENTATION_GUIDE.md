@@ -29,14 +29,14 @@ Copy 10 foto original ke folder `augment_input/`.
 ### Step 2: Jalankan augmentor
 
 ```powershell
-cd "d:\New folder\embedding_extractor"
+cd biometric/embedding_extractor
 
 # Simple - default settings (50 augmentations per image = 500 total)
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe data_augmentation.py
+python data_augmentation.py
 
 # Atau dengan custom settings
 # Syntax: python data_augmentation.py <input_dir> <output_dir> <augmentations_per_image>
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe data_augmentation.py ./augment_input ./augmented_photos 50
+python data_augmentation.py ./augment_input ./augmented_photos 50
 ```
 
 ### Step 3: Tunggu proses
@@ -74,8 +74,8 @@ Atau manual:
 ### Step 5: Jalankan embedding extractor dengan data baru
 
 ```powershell
-cd "d:\New folder\embedding_extractor"
-C:\Users\Den\AppData\Local\Programs\Python\Python310\python.exe main.py
+cd biometric/embedding_extractor
+python main.py
 ```
 
 Sekarang embedding akan extract dari 500 foto dengan berbagai pose! 💪

@@ -198,7 +198,7 @@ Step 3: Start training
 ### 4. Recognize dengan Video
 Setelah training selesai:
 ```powershell
-cd "d:\New folder\face_recognition_test"
+cd biometric/face_recognition_test
 python video_recognition.py
 ```
 
@@ -234,7 +234,7 @@ embeddings_db = {
 ```
 
 ### File
-- **Location:** `d:\New folder\embeddings.pkl`
+- **Location:** `embeddings.pkl`
 - **Format:** Python pickle (binary)
 - **Size:** ~100KB per user (typical)
 - **Persistent:** Survives app restart
@@ -297,7 +297,7 @@ pip install -r requirements.txt
 ### ❌ "embeddings.pkl not found"
 - Training belum pernah selesai
 - Check `/api/training/start` response
-- Manual check: `ls d:\New folder\embeddings.pkl`
+- Manual check: `ls embeddings.pkl`
 
 ### ❌ "Face not recognized"
 - Similarity too low? Lower threshold di config
