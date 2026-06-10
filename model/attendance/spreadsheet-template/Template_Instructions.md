@@ -1,136 +1,363 @@
 # Attendance Spreadsheet Template Instructions
 
 ## Overview
-Template ini menunjukkan struktur kolom yang digunakan oleh sistem Biometric Desktop untuk mencatat absensi ke Google Sheets.
 
-## Struktur Kolom
+Template ini digunakan oleh sistem Biometric Desktop untuk menyimpan data absensi ke Google Sheets melalui Google Apps Script.
 
-| No | Kolom | Tipe | Sumber | Keterangan |
-|----|-------|------|--------|-----------|
-| 1 | **ID** | Integer | Database | User ID dari sistem biometric |
-| 2 | **Nama** | Text | Database | Nama lengkap pengguna |
-| 3 | **Job** | Text | User Input | Pilihan Job (PS Muro, Dasar Menengah, Lanjut) |
-| 4 | **Domain** | Text | User Input | Lokasi Lab (Lab Depok, Lab Kalimalang, Lab Karawaci) |
-| 5 | **Domisili** | Text | User Input | Asal/Lokasi tempat tinggal |
-| 6 | **Shift_A** | Boolean (0/1) | User Input | Apakah hadir di Shift A |
-| 7 | **Shift_B** | Boolean (0/1) | User Input | Apakah hadir di Shift B |
-| 8 | **Shift_C** | Boolean (0/1) | User Input | Apakah hadir di Shift C |
-| 9 | **Shift_D** | Boolean (0/1) | User Input | Apakah hadir di Shift D |
-| 10 | **Shift_E** | Boolean (0/1) | User Input | Apakah hadir di Shift E |
-| 11 | **Tanggal** | Date | System | Tanggal absensi (YYYY-MM-DD) |
-| 12 | **Waktu** | Time | System | Waktu absensi (HH:MM:SS) |
-| 13 | **Status** | Text | System | Registered / Unregistered |
-| 14 | **Akses** | Integer | System | Nomor akses (sequence number) |
-| 15 | **Metode** | Text | System | biometrik / manual |
-| 16 | **Foto** | File Path | System | Path ke foto yang diambil |
+Google Apps Script akan secara otomatis:
 
-## Cara Menggunakan
+* Membuat timestamp absensi
+* Menghitung mutu shift
+* Menghitung total shift
+* Menghitung jumlah akses
+* Menentukan status Registered / Unregistered
 
-### 1. Import ke Google Sheets
-```
-1. Buka Google Sheets baru
-2. File → Import → Upload tab
-3. Pilih file Attendance_Template.csv
-4. Pilih opsi "Insert new sheet"
-5. Click "Import data"
+Raspberry Pi hanya mengirim data identitas, domisili, dan kode shift.
+
+---
+
+# Spreadsheet Layout
+
+## Row 1
+
+```text
+Tanggal | ID | Nama | Shift 1 | | Shift 2 | | Shift 3 | | Shift 4 | | Shift 5 | | Domisili | Status | Akses | Total Shift
 ```
 
-### 2. Setup Formulas
-Anda bisa menambahkan formula di Google Sheets:
-- Autosum untuk total kehadiran per shift
-- Format conditional untuk status unregistered
-- Chart untuk visualisasi attendance
+## Row 2
 
-### 3. Configuration di Raspberry Pi
+```text
+         |    |      | Ket | Mutu | Ket | Mutu | Ket | Mutu | Ket | Mutu | Ket | Mutu
+```
+
+## Row 3+
+
+Data absensi.
+
+---
+
+# Struktur Kolom
+
+| No | Kolom        | Source       | Keterangan                |
+| -- | ------------ | ------------ | ------------------------- |
+| 1  | Tanggal      | Apps Script  | Timestamp otomatis        |
+| 2  | ID           | Raspberry Pi | User ID                   |
+| 3  | Nama         | Raspberry Pi | Nama pengguna             |
+| 4  | Shift 1 Ket  | Raspberry Pi | Kode Shift 1              |
+| 5  | Shift 1 Mutu | Apps Script  | Nilai mutu Shift 1        |
+| 6  | Shift 2 Ket  | Raspberry Pi | Kode Shift 2              |
+| 7  | Shift 2 Mutu | Apps Script  | Nilai mutu Shift 2        |
+| 8  | Shift 3 Ket  | Raspberry Pi | Kode Shift 3              |
+| 9  | Shift 3 Mutu | Apps Script  | Nilai mutu Shift 3        |
+| 10 | Shift 4 Ket  | Raspberry Pi | Kode Shift 4              |
+| 11 | Shift 4 Mutu | Apps Script  | Nilai mutu Shift 4        |
+| 12 | Shift 5 Ket  | Raspberry Pi | Kode Shift 5              |
+| 13 | Shift 5 Mutu | Apps Script  | Nilai mutu Shift 5        |
+| 14 | Domisili     | Raspberry Pi | Lokasi/domisili pengguna  |
+| 15 | Status       | Apps Script  | Registered / Unregistered |
+| 16 | Akses        | Apps Script  | Jumlah akses user         |
+| 17 | Total Shift  | Apps Script  | Total mutu seluruh shift  |
+
+---
+
+# Cara Menggunakan
+
+## 1. Buat Spreadsheet Baru
+
+```text
+Google Sheets
+      ↓
+Create Blank Spreadsheet
+      ↓
+Rename Sheet:
+Attendance
+```
+
+---
+
+## 2. Setup Header
+
+Masukkan header sesuai struktur di atas.
+
+Data harus dimulai dari:
+
+```text
+Row 3
+```
+
+karena:
+
+```text
+Row 1 = Header Utama
+Row 2 = Ket / Mutu
+Row 3 = Data
+```
+
+---
+
+## 3. Deploy Apps Script
+
+Deploy Apps Script sebagai:
+
+```text
+Web App
+```
+
+dan copy URL hasil deployment.
+
+---
+
+## 4. Configure Raspberry Pi
+
 ```yaml
-# config.yaml
 google_sheets:
-  web_app_url: "https://script.google.com/macros/.../usercontent"
+  web_app_url: "https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxx/exec"
 ```
 
-## Field Descriptions
+---
 
-### Auto-Generated Fields (dari Raspberry Pi)
-- **ID**: Diambil dari database fingerprint/face
-- **Nama**: Nama yang terdaftar di sistem
-- **Tanggal**: Timestamp saat absensi diproses
-- **Waktu**: Waktu proses (HH:MM:SS)
-- **Status**: Berdasarkan kecocokan biometric
-- **Akses**: Nomor urut submission untuk user
-- **Metode**: Selalu "biometrik"
-- **Foto**: Path ke foto yang diambil saat verifikasi
+# Data Yang Dikirim Raspberry Pi
 
-### User Input Fields
-- **Job**: Pengguna memilih dari menu sebelum absensi
-- **Domain**: Pengguna memilih lokasi lab
-- **Domisili**: Pengguna input domisili/asal
-- **Shift_A-E**: Pengguna memilih shift yang dihadiri
+Contoh payload:
 
-### Data Type Notes
-- **Boolean fields (Shift_A-E)**: 1 = Ya/Hadir, 0 = Tidak
-- **Status**: "Registered" jika user terdaftar, "Unregistered" jika tidak dikenali
-- **Akses**: Increment otomatis per submission per user
-
-## Example Data
-
-### Registered User (Success)
+```json
+{
+  "id":"5",
+  "name":"Fariz",
+  "domisili":"Lab Depok",
+  "shift_A":"2",
+  "shift_B":"3",
+  "shift_C":"5",
+  "shift_D":"6",
+  "shift_E":"4"
+}
 ```
-101,John Doe,PS Muro,Lab Depok,Jakarta,1,1,0,0,0,2026-06-09,14:30:15,Registered,1,biometrik,/photos/101_001.jpg
+
+---
+
+# Data Yang Dibuat Apps Script
+
+Apps Script otomatis membuat:
+
+```text
+Tanggal
+Status
+Akses
+Mutu Shift
+Total Shift
 ```
-- User dikenali ✅
-- Memilih Job: PS Muro
-- Memilih Domain: Lab Depok
-- Hadir untuk Shift A & B
-- Nomor akses: 1 (first submission)
 
-### Unregistered User (Failed)
+Raspberry Pi tidak perlu mengirim field tersebut.
+
+---
+
+# Shift Mapping
+
+| Kode | Mutu |
+| ---- | ---- |
+| 0    | 0    |
+| 1    | 1    |
+| 2    | 1.5  |
+| 3    | 2.5  |
+| 4    | 2    |
+| 5    | 3    |
+| 6    | 5    |
+| 7    | 6    |
+| 8    | 4    |
+| 9    | -    |
+| A    | 3    |
+| B    | 2    |
+| C    | -    |
+
+---
+
+# Example Data
+
+## Registered User
+
+Input dari Raspberry Pi:
+
+```json
+{
+  "id":"5",
+  "name":"Fariz",
+  "domisili":"Lab Depok",
+  "shift_A":"2",
+  "shift_B":"3",
+  "shift_C":"5",
+  "shift_D":"6",
+  "shift_E":"4"
+}
 ```
-999,Unknown User,,,2026-06-09,16:00:00,Unregistered,-,biometrik,/photos/unknown_001.jpg
+
+Data yang tersimpan:
+
+```text
+2026-05-30 13:26:11 | 5 | Fariz | 2 | 1.5 | 3 | 2.5 | 5 | 3 | 6 | 5 | 4 | 2 | Lab Depok | Registered | 1 | 14
 ```
-- User tidak dikenali ❌
-- Job & Domain kosong (tidak bisa input)
-- Status: Unregistered
-- Foto tetap tersimpan untuk review admin
 
-## Best Practices
+---
 
-1. **Backup Regular**
-   - Download CSV backup setiap hari
-   - Gunakan version control untuk config
+## Unregistered User
 
-2. **Permission Management**
-   - Share sheet hanya ke authorized users
-   - Use email groups untuk access control
+Input:
 
-3. **Data Cleaning**
-   - Remove duplicate entries
-   - Archive old data ke separate sheet
-   - Maintain data integrity
+```json
+{}
+```
 
-4. **Monitoring**
-   - Check "Unregistered" entries setiap hari
-   - Verify foto untuk entries yang suspicious
-   - Monitor network connectivity untuk sync
+Data yang tersimpan:
 
-## Troubleshooting
+```text
+2026-05-30 13:27:20 | | | | | | | | | | | | | - | Unregistered | 1 | 0
+```
 
-### Data tidak terkirim ke Google Sheets
-- ✅ Verify Web App URL correct di config.yaml
-- ✅ Check Google Apps Script deployment active
-- ✅ Verify network connectivity
-- ✅ Check logs: `logs/absensi_pending.csv` untuk pending entries
+---
 
-### Duplikat entries
-- Cek `logs/attendance_history.csv` untuk verification
-- Remove manual dari Google Sheets
+# Status Logic
 
-### Missing fields
-- Pastikan Apps Script code lengkap
-- Verify sheet columns sesuai template
+Apps Script:
 
-## Next Steps
+```javascript
+(data.id && data.name)
+```
 
-Setelah setup template:
-1. Lanjut ke [SPREADSHEET_STRUCTURE.md](../docs/SPREADSHEET_STRUCTURE.md) untuk detail sheet
-2. Lanjut ke [APPS_SCRIPT_SETUP.md](../docs/APPS_SCRIPT_SETUP.md) untuk deployment
-3. Lanjut ke [ATTENDANCE_FLOW.md](../docs/ATTENDANCE_FLOW.md) untuk alur lengkap
+Jika true:
+
+```text
+Registered
+```
+
+Jika false:
+
+```text
+Unregistered
+```
+
+---
+
+# Access Logic
+
+Apps Script menghitung jumlah kemunculan ID.
+
+Contoh:
+
+```text
+ID 5 pertama
+Akses = 1
+
+ID 5 kedua
+Akses = 2
+
+ID 5 ketiga
+Akses = 3
+```
+
+---
+
+# Total Shift Logic
+
+Contoh:
+
+```text
+Shift 1 = 2
+Shift 2 = 3
+Shift 3 = 5
+Shift 4 = 6
+Shift 5 = 4
+```
+
+Mutu:
+
+```text
+1.5
+2.5
+3
+5
+2
+```
+
+Total:
+
+```text
+14
+```
+
+---
+
+# Recommended Formulas
+
+## Registered Count
+
+```excel
+=COUNTIF(O:O,"Registered")
+```
+
+## Unregistered Count
+
+```excel
+=COUNTIF(O:O,"Unregistered")
+```
+
+## Total Shift Value
+
+```excel
+=SUM(Q:Q)
+```
+
+## Total Access
+
+```excel
+=SUM(P:P)
+```
+
+---
+
+# Troubleshooting
+
+## Data Tidak Masuk
+
+Periksa:
+
+```text
+Apps Script Deployment
+Google Sheets Permission
+Internet Connection
+```
+
+---
+
+## Status Salah
+
+Pastikan payload mengirim:
+
+```json
+{
+  "id":"5",
+  "name":"Fariz"
+}
+```
+
+untuk user yang valid.
+
+---
+
+## Total Shift Tidak Sesuai
+
+Periksa:
+
+```text
+Shift Mapping
+Apps Script Code
+Spreadsheet Formula
+```
+
+---
+
+# Documentation References
+
+1. APPS_SCRIPT_SETUP.md
+2. ATTENDANCE_FLOW.md
+3. SPREADSHEET_STRUCTURE.md
+
+Seluruh dokumen di atas harus menggunakan struktur spreadsheet yang sama agar sinkron dengan implementasi sistem.
